@@ -11,6 +11,8 @@ use App\Http\Controllers\Api\UsuarioController;
 use App\Http\Controllers\Api\Numeros_oficios_departamentoController;
 use App\Http\Controllers\Api\Numeros_oficios_direccionController;
 use App\Http\Controllers\Api\PdfController;
+use App\Http\Controllers\Api\ImageController;
+use App\Http\Controllers\Api\FuenteController;
 
 // rutas de departamentos
 Route::get('/Departamentos', [departamentoController::class, 'index']);
@@ -66,5 +68,10 @@ Route::post('/contador-direccion/restablecer', [Numeros_oficios_direccionControl
 
 Route::post('/pdf', [PdfController::class, 'crearPdf']);
 
+Route::post('/images', [ImageController::class, 'store']);
+Route::get('/images', [ImageController::class, 'index']);
+Route::delete('/images/{type}/{filename}', [ImageController::class, 'destroy']);
 
-
+Route::post('/fuentes', [FuenteController::class, 'store']);
+Route::get('/fuentes', [FuenteController::class, 'index']);
+Route::delete('/fuentes/{id}', [FuenteController::class, 'destroy']);

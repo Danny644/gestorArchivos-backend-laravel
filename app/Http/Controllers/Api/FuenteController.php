@@ -2,113 +2,51 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Models\Fuente;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\File;
 
 class FuenteController
 {
-    public function index(): JsonResponse
+    public function index()
     {
-        $fuentes = Fuente::all();
-
-        if ($fuentes->isEmpty()) {
-            return response()->json([
-                'message' => 'No hay fuentes para mostrar',
-                'data' => []
-            ], 200);
+        try {
+            $fonts = Storage::files('fonts');
+            return response()->json($fonts);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'message' => 'Fuentes obtenidas exitosamente',
-            'data' => $fuentes
-        ], 200);
     }
 
-    public function store(Request $request): JsonResponse
+    public function store(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255',
-            'url' => 'required|string|max:255',
-        ]);
+        try {
+            $request->validate([
+                'font' => 'required|file|max:2048',
+            ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
+            $file = $request->file('font');
+            $filename = $file->getClientOriginalName();
+            $path = $file->storeAs('fonts', $filename);
+
+            return response()->json(['message' => 'Font uploaded successfully', 'path' => $path], 201);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        $fuente = Fuente::create($validator->validated());
-
-        return response()->json([
-            'message' => 'Fuente creada exitosamente',
-            'data' => $fuente
-        ], 201);
     }
 
-    public function show($id): JsonResponse
+    public function destroy(string $filename)
     {
-        $fuente = Fuente::find($id);
+        try {
+            $path = "fonts/$filename";
+            if (!Storage::exists($path)) {
+                return response()->json(['message' => 'Font not found'], 404);
+            }
 
-        if (!$fuente) {
-            return response()->json([
-                'message' => 'Fuente no encontrada'
-            ], 404);
+            Storage::delete($path);
+            return response()->json(['message' => 'Font deleted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        return response()->json([
-            'message' => 'Fuente encontrada',
-            'data' => $fuente
-        ], 200);
-    }
-
-    public function update(Request $request, $id): JsonResponse
-    {
-        $fuente = Fuente::find($id);
-
-        if (!$fuente) {
-            return response()->json([
-                'message' => 'Fuente no encontrada'
-            ], 404);
-        }
-
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'sometimes|string|max:255',
-            'url' => 'sometimes|string|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $fuente->fill($validator->validated());
-        $fuente->save();
-
-        return response()->json([
-            'message' => 'Fuente actualizada exitosamente',
-            'data' => $fuente
-        ], 200);
-    }
-
-    public function destroy($id): JsonResponse
-    {
-        $fuente = Fuente::find($id);
-
-        if (!$fuente) {
-            return response()->json([
-                'message' => 'Fuente no encontrada'
-            ], 404);
-        }
-
-        $fuente->delete();
-
-        return response()->json([
-            'message' => 'Fuente eliminada exitosamente'
-        ], 200);
     }
 }

@@ -9,110 +9,46 @@ use Illuminate\Support\Facades\Validator;
 
 class HeaderController
 {
-    public function index(): JsonResponse
+   
+    public function store(Request $request)
     {
-        $headers = Header::all();
-
-        if ($headers->isEmpty()) {
-            return response()->json([
-                'message' => 'No hay headers para mostrar',
-                'data' => []
-            ], 200);
-        }
-
-        return response()->json([
-            'message' => 'Headers obtenidos exitosamente',
-            'data' => $headers
-        ], 200);
-    }
-
-    public function store(Request $request): JsonResponse
-    {
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'required|string|max:255',
-            'url' => 'required|string|max:255',
-            'alto' => 'required|numeric',
-            'ancho' => 'required|numeric',
+        $request->validate([
+            'image' => 'required|image|mimes:jpeg,png,jpg,gif|max:4096'
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $name = time() . '.' . $image->getClientOriginalExtension();
+            $path = $image->storeAs('public/images/header', $name);
+            
+            return response()->json(['message' => 'imagen subida exitosamente', 'path' => $path]);
         }
 
-        $header = Header::create($validator->validated());
-
-        return response()->json([
-            'message' => 'Header creado exitosamente',
-            'data' => $header
-        ], 201);
+        return response()->json(['message' => 'No image file uploaded'], 400);
     }
 
-    public function show($id): JsonResponse
+    public function index()
     {
-        $header = Header::find($id);
-
-        if (!$header) {
-            return response()->json([
-                'message' => 'Header no encontrado'
-            ], 404);
-        }
-
-        return response()->json([
-            'message' => 'Header encontrado',
-            'data' => $header
-        ], 200);
+        $images = Storage::files('public/images');
+        return response()->json($images);
     }
 
-    public function update(Request $request, $id): JsonResponse
+    public function show($id)
     {
-        $header = Header::find($id);
-
-        if (!$header) {
-            return response()->json([
-                'message' => 'Header no encontrado'
-            ], 404);
+        $path = 'public/images/' . $id;
+        if (Storage::exists($path)) {
+            return response()->file(storage_path('app/' . $path));
         }
-
-        $validator = Validator::make($request->all(), [
-            'nombre' => 'sometimes|string|max:255',
-            'url' => 'sometimes|string|max:255',
-            'alto' => 'sometimes|numeric',
-            'ancho' => 'sometimes|numeric',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'message' => 'Error de validación',
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
-        $header->fill($validator->validated());
-        $header->save();
-
-        return response()->json([
-            'message' => 'Header actualizado exitosamente',
-            'data' => $header
-        ], 200);
+        return response()->json(['message' => 'Image not found'], 404);
     }
 
-    public function destroy($id): JsonResponse
+    public function destroy($id)
     {
-        $header = Header::find($id);
-
-        if (!$header) {
-            return response()->json([
-                'message' => 'Header no encontrado'
-            ], 404);
+        $path = 'public/images/' . $id;
+        if (Storage::exists($path)) {
+            Storage::delete($path);
+            return response()->json(['message' => 'Image deleted successfully']);
         }
-
-        $header->delete();
-
-        return response()->json([
-            'message' => 'Header eliminado exitosamente'
-        ], 200);
+        return response()->json(['message' => 'Image not found'], 404);
     }
 }
